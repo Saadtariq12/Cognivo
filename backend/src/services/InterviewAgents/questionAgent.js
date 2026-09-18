@@ -17,7 +17,7 @@ const generateQuestion = async ({
   moveToNextTopic,
   currentDifficulty,
   increaseDifficulty,
-  previousQuestionsAndAnswers,
+  previousQuestionAndAnswer,
 }) => {
   try {
     const runtimeContext = `
@@ -37,16 +37,16 @@ const generateQuestion = async ({
     ${currentInterviewStage || "Introduction"}
 
     Current Topic:
-    ${currentTopic || "False"}
+    ${currentTopic || "Not provided"}
 
     Move To Next Topic:
     ${moveToNextTopic || "Not provided"}
 
     Current Difficulty:
-    ${currentDifficulty || "medium"}
+    ${currentDifficulty || "easy"}
 
     Previous Questions and Answers:
-    ${JSON.stringify(previousQuestionsAndAnswers || [])}
+    ${JSON.stringify(previousQuestionAndAnswer || [])}
     `;
 
         const prompt = `
@@ -58,7 +58,7 @@ const generateQuestion = async ({
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

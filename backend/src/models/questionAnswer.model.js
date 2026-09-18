@@ -1,10 +1,10 @@
 import {supabase} from "../config/database.js"
 
-const getPreviousAnswers = async (sessionId) => {
+const getPreviousAnswers = async (previous_answer_id) => {
     const {data,error} = await supabase
     .from('interview_answers')
     .select("question, answer")
-    .eq("session_id", sessionId)
+    .eq("id", previous_answer_id)
      if (error) {
        throw error;
      }

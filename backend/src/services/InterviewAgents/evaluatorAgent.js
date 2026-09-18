@@ -10,9 +10,6 @@ const ai = new GoogleGenAI({
 });
 
 const evaluateAnswer = async ({
-  candidateIntroduction,
-  candidateProjects,
-  candidateSkills,
   jobRequirements,
   currentInterviewStage,
   currentQuestion,
@@ -23,14 +20,6 @@ const evaluateAnswer = async ({
 }) => {
     try {
         const runtimeContext = `
-        Candidate Introduction:
-        ${candidateIntroduction || "Not provided"}
-
-        Candidate Projects:
-        ${candidateProjects || "Not provided"}
-
-        Candidate Skills:
-        ${candidateSkills || "Not provided"}
 
         Job Requirements:
         ${jobRequirements || "Not provided"}

@@ -62,4 +62,30 @@ const store_final_assessment = async (
   if(error) throw error;
   else return data;
 };
-export { create_evaluation, current_interview_stage, store_final_assessment  };
+
+const overallCorrectness = async(sessionid) => {
+  const {data, error} = await supabase
+  .from('evaluations')
+  .select('correctness')
+  .eq('session_id', sessionid)
+
+  if(error){
+    throw error
+  }
+  if(!data || data.length == 0) return 0;
+
+  const total = data.reduce((sum, row) => sum + (row.correctness || 0), 0);
+  const averageCorrectness = total / data.length;
+
+  const { error: insertError } = await supabase
+    .from("final_assessments")
+    .upsert({
+      session_id: sessionid,
+      overall_correctness: averageCorrectness,
+    });
+
+  if (insertError) throw insertError;
+
+  return averageCorrectness;
+}
+export { create_evaluation, current_interview_stage, store_final_assessment, overallCorrectness  };

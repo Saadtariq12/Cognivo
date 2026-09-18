@@ -38,7 +38,7 @@ ${runtimeContext}
 
     // Call Gemini API to extract structured information
     const response = await ai.models.generateContent({
-      model: "Gemini 2.5 Flash Native Audio Dialog",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

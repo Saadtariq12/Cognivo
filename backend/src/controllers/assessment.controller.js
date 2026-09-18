@@ -5,7 +5,8 @@ import { fetchCandidateInfo } from "../models/candidate.model.js";
 import { getAllQA } from "../models/questionAnswer.model.js";
 import { getAllEvaluations } from "../models/evaluations.model.js";
 import { job_requirements } from "../models/interview.model.js";
-import { store_final_assessment } from "../models/assessment.model.js";
+import { overallCorrectness, store_final_assessment } from "../models/assessment.model.js";
+import { update_status } from "../models/interviewInvitations.model.js";
 
 const final_assessment = asyncHandler(async(req, res) => {
     const {session_id, candidate_id, interview_id} = req.body;
@@ -35,14 +36,16 @@ const final_assessment = asyncHandler(async(req, res) => {
       final_assessment.weaknesses,
       final_assessment.recommendation
     );
-
+    const stored_correctness = await overallCorrectness(session_id);
+    update_status(candidate_id)
     return res
     .status(200)
     .json({
         success: true,
         message: "final assessment stored successfully",
         data: {
-            stored_final_assessment
+            stored_final_assessment,
+            stored_correctness
         }
     })
 })

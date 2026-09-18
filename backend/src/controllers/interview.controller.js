@@ -42,7 +42,7 @@ const submitAnswer = async (req, res) => {
       data: {
         session_id,
         question_id,
-        answer,
+        stored_answer,
       },
     });
   } catch (error) {
@@ -74,7 +74,7 @@ const askQuestion = asyncHandler(async (req, res) => {
     const evaluation = previous_answer_id
       ? await getEvaluation(previous_answer_id)
       : null;
-    const previousQA = await getPreviousAnswers(session_id);
+    const previousQA = await getPreviousAnswers(previous_answer_id);
     console.time("question generation ");
     const question = await generateQuestion({
       candidateIntroduction: candidate.introduction,
@@ -87,15 +87,14 @@ const askQuestion = asyncHandler(async (req, res) => {
       moveToNextTopic: evaluation?.move_to_next_topic,
       currentDifficulty: answer?.difficulty,
       increaseDifficulty: evaluation?.increase_difficulty,
-      previousQuestionsAndAnswers: previousQA,
+      previousQuestionAndAnswer: previousQA,
     });
-
+    console.timeEnd("question generation ");
     const stored_question = await storeQuestion(
       session_id,
       question.question,
       question.intent,
     );
-    console.timeEnd("question generation ");
     return res.status(200).json({
       success: true,
       message: "question generated successfully",

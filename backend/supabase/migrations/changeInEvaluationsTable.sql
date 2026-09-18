@@ -5,5 +5,6 @@ ADD COLUMN IF NOT EXISTS increase_difficulty BOOLEAN default FALSE,
 ADD COLUMN IF NOT EXISTS finish_interview BOOLEAN default FALSE;
 ADD COLUMN IF NOT EXISTS answer_quality TEXT,
 ADD COLUMN IF NOT EXISTS current_interview_stage TEXT CHECK (current_interview_stage IN ('introduction', 'technical', 'projects', 'problem_solving', 'closing'));
+ADD COLUMN IF NOT EXISTS skills_demonstrated TEXT,
 COMMENT ON COLUMN evaluations.answer_quality
 IS 'To demonstrate candidate''s communication';

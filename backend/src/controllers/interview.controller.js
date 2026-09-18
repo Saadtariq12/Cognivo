@@ -22,6 +22,7 @@ import {
   getEvaluation,
   store_evaluation,
 } from "../models/evaluations.model.js";
+import { supabase } from "../config/database.js";
 
 const submitAnswer = async (req, res) => {
   try {
@@ -94,6 +95,8 @@ const askQuestion = asyncHandler(async (req, res) => {
       session_id,
       question.question,
       question.intent,
+      question.topic,
+      question.difficulty
     );
     return res.status(200).json({
       success: true,
@@ -121,21 +124,21 @@ const generateEvaluation = asyncHandler(async (req, res) => {
   if (!answer_id || !session_id) {
     throw new APIerror(300, "please provide answer id and session id");
   }
-  const get_candidate_info = await fetchCandidateInfo(candidate_id);
-  const isEmpty = (val) => {
-    if (val === null || val === undefined) return true;
-    if (typeof val === "string" && val.trim() === "") return true;
-    if (Array.isArray(val) && val.length === 0) return true;
-    return false;
-  };
-  const { introduction, projects, skills } = get_candidate_info || {};
-  const AnyFieldMissing =
-    !get_candidate_info ||
-    isEmpty(introduction) ||
-    isEmpty(projects) ||
-    isEmpty(skills);
 
-  if (AnyFieldMissing) {
+  // If no evaluations exist, this is the first answer (introduction)
+  const { count, error: evalError } = await supabase
+    .from('evaluations')
+    .select('*', { count: 'exact', head: true })
+    .eq('session_id', session_id);
+  
+  if (evalError) {
+    throw new APIerror(500, "Error checking existing evaluations");
+  }
+
+  const isFirstAnswer = count === 0;
+
+  if (isFirstAnswer) {
+    // This is the introduction answer - run Context Extractor
     const jobRequirements = await job_requirements(interview_id);
     const answerData = await getAnswerOnly(answer_id);
     const answer = answerData?.answer || "";

@@ -33,7 +33,9 @@ const storeQuestion = async(
     .insert({
         session_id,
         question,
-        question_intent
+        question_intent,
+        topic,
+        difficulty,
     })
     .select()
     .single()

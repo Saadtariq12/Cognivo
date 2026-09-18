@@ -18,7 +18,7 @@ const storeCandidateInfo = async(candidate_id, introduction, projects, skills) =
     .update({
         introduction: introduction,
         projects: projects,
-        skills: skills
+        initial_claimed_skills: skills
     })
     .eq('profile_id', candidate_id)
 

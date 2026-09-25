@@ -9,7 +9,7 @@ CREATE TABLE public.evaluations (
     concepts_covered TEXT[],
     concepts_missing TEXT[],
     need_follow_up BOOLEAN NOT NULL DEFAULT FALSE,
-
+    evaluation_reasoning TEXT
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -4,7 +4,7 @@ import { createFinalAssessment } from "../services/Assessment/assessmentAgent.js
 import { fetchCandidateInfo } from "../models/candidate.model.js";
 import { getAllQA } from "../models/questionAnswer.model.js";
 import { getAllEvaluations } from "../models/evaluations.model.js";
-import { job_requirements } from "../models/interview.model.js";
+import { job_requirements, store_endtime } from "../models/interview.model.js";
 import { overallCorrectness, store_final_assessment } from "../models/assessment.model.js";
 import { update_status } from "../models/interviewInvitations.model.js";
 
@@ -37,6 +37,8 @@ const final_assessment = asyncHandler(async(req, res) => {
       final_assessment.recommendation
     );
     const stored_correctness = await overallCorrectness(session_id);
+    const endtime = new Date().toISOString();
+    await store_endtime(session_id,endtime)
     update_status(candidate_id)
     return res
     .status(200)

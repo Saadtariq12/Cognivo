@@ -26,7 +26,7 @@ const getAnswerDetails = async (answerId) => {
 }
 
 const storeQuestion = async(
-    session_id, question, question_intent
+    session_id, question, question_intent, topic, difficulty
 ) => {
     const {data,error} = await supabase
     .from('interview_answers')

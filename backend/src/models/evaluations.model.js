@@ -41,12 +41,14 @@ const store_evaluation = async(
   correctness,
   concepts_covered,
   concepts_missing,
+  skills_demonstrated,
   need_follow_up,
   move_to_next_topic,
   increase_difficulty,
   current_interview_stage,
   finish_interview,
-  answer_quality
+  answer_quality,
+  evaluation_reasoning
 ) => {
     const {data,error} = await supabase
     .from('evaluations')
@@ -56,12 +58,14 @@ const store_evaluation = async(
         correctness,
         concepts_covered,
         concepts_missing,
+        skills_demonstrated,
         need_follow_up,
         move_to_next_topic,
         increase_difficulty,
         current_interview_stage,
         finish_interview,
-        answer_quality
+        answer_quality,
+        evaluation_reasoning
     })
 
     if(error){

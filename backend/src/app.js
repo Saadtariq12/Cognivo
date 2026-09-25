@@ -13,7 +13,14 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-import interviewRouter from "./routers/interview.routes.js";
+import interviewRouter, {
+  candidateRouter,
+} from "./routers/candidate.routes.js";
+import authRouter from "./routers/auth.routes.js";
+import recruiterRouter from "./routers/recruiter.routes.js";
+app.use("/api/auth", authRouter);
+app.use("/api/candidate", candidateRouter);
 app.use("/api/interview", interviewRouter);
+app.use("/api/recruiter", recruiterRouter);
 
 export { app };

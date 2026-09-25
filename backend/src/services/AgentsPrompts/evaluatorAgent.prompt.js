@@ -21,10 +21,11 @@ Return:
 
 - correctness: Integer 0-100 measuring how correctly and adequately the answer addresses the question.
 - concepts_covered: Relevant concepts correctly demonstrated.
-- concepts_missing: Important expected concepts missing from the answer. Do not include irrelevant or unasked concepts.
-- need_follow_up: true if clarification or meaningful deeper exploration of the current answer is needed.
+- concepts_missing: Important expected concepts missing from the answer.
+- skills: 1-2 job-relevant skills demonstrated by the answer. Do not infer skills from the question or job requirements alone. Return [] if none are demonstrated.
+- need_follow_up: true if clarification or meaningful deeper exploration is needed.
 - move_to_next_topic: true if the current topic has been sufficiently addressed.
-- increase_difficulty: true only when demonstrated understanding justifies a harder next question.
+- increase_difficulty: true only when demonstrated understanding justifies a harder question.
 - current_interview_stage: Stage for the next question. One of "introduction", "technical", "projects", "problem_solving", "closing".
 - finish_interview: true only when sufficient interview evidence has been collected and further questioning adds little value.
 - answer_quality: Brief assessment of job-relevant clarity, relevance, structure, and ability to explain.
@@ -35,18 +36,16 @@ Return:
 Stages normally progress:
 
 introduction → technical → projects → problem_solving → closing
-
-Do not change stages after every answer. Keep the current stage until it has been sufficiently explored.
-
-"move_to_next_topic" changes the topic within a stage; it does NOT automatically change current_interview_stage.
-
+Keep the current stage until sufficiently explored.
+"move_to_next_topic" changes the topic within a stage; it does NOT automatically change the interview stage.
 Do not end the interview because of one weak answer.
 
 ## Rules
 
 - Evaluate against the question, its intent/difficulty, and relevant job requirements.
 - Judge demonstrated knowledge, not answer length or confidence.
-- Do not penalize concepts that were not reasonably required by the question.
+- Do not penalize concepts that were not reasonably required.
+- Extract skills only when supported by the candidate's answer.
 - Evaluate only job-relevant evidence; ignore protected or irrelevant personal characteristics.
 - Do not generate the next question or final assessment.
 - Keep textual fields concise.
@@ -59,6 +58,7 @@ Return ONLY valid JSON with exactly this structure:
   "correctness": 0,
   "concepts_covered": [],
   "concepts_missing": [],
+  "skills_demonstrated": [],
   "need_follow_up": false,
   "move_to_next_topic": false,
   "increase_difficulty": false,

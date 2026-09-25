@@ -1,7 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { APIError } from "../utils/APIerror.js";
-import { APIresponse } from "../utils/APIresponse.js";
-import { evaluateAnswer } from "../services/InterviewAgents/evaluatorAgent.js"; //returns generatedEvaluation
+import { evaluateAnswer } from "../services/InterviewAgents/evaluatorAgent.js";
 import { generateQuestion } from "../services/InterviewAgents/questionAgent.js";
 import { extractContext } from "../services/InterviewAgents/contextExtractorAgent.js";
 import { processInterviewFlow } from "../services/Interview/interviewEngine.js";
@@ -10,51 +9,18 @@ import {
   storeQuestion,
   storeAnswer,
   getAnswerDetails,
-  getAnswerOnly,
   getPreviousAnswers,
 } from "../models/questionAnswer.model.js";
 import {
   storeCandidateInfo,
   fetchCandidateInfo,
+  intro_exists,
 } from "../models/candidate.model.js";
 import {
-  current_interview_stage,
   getEvaluation,
   store_evaluation,
 } from "../models/evaluations.model.js";
 import { supabase } from "../config/database.js";
-
-const submitAnswer = async (req, res) => {
-  try {
-    const { session_id, question_id, answer } = req.body;
-
-    if (!session_id || !question_id || !answer) {
-      return res.status(400).json({
-        success: false,
-        message: "session_id, question_id and answer are required",
-      });
-    }
-    console.time("storing question")
-    const stored_answer = await storeAnswer(question_id, answer);
-    console.timeEnd('storing question')
-    return res.status(200).json({
-      success: true,
-      message: "Answer received successfully",
-      data: {
-        session_id,
-        question_id,
-        stored_answer,
-      },
-    });
-  } catch (error) {
-    console.error("Error receiving candidate answer:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to process candidate answer",
-    });
-  }
-};
 
 const askQuestion = asyncHandler(async (req, res) => {
   try {
@@ -63,8 +29,8 @@ const askQuestion = asyncHandler(async (req, res) => {
 
     previous_answer_id ? await getAnswerDetails(previous_answer_id) : null;
 
-    if (!session_id || !candidate_id) {
-      throw new APIerror(301, "session id or candidate id not provided");
+    if (!session_id || !candidate_id || !interview_id) {
+      throw new APIError(301, "session id or candidate or interview id not provided");
     }
 
     const jobRequirements = await job_requirements(interview_id);
@@ -75,12 +41,12 @@ const askQuestion = asyncHandler(async (req, res) => {
     const evaluation = previous_answer_id
       ? await getEvaluation(previous_answer_id)
       : null;
-    const previousQA = await getPreviousAnswers(previous_answer_id);
+    const previousQA = previous_answer_id? await getPreviousAnswers(previous_answer_id) : null;
     console.time("question generation ");
     const question = await generateQuestion({
       candidateIntroduction: candidate.introduction,
       candidateProjects: candidate.projects,
-      candidateSkills: candidate.skills,
+      candidateSkills: candidate.initial_claimed_skills,
       jobRequirements: jobRequirements,
       currentInterviewStage:
         evaluation?.current_interview_stage || "introduction",
@@ -106,10 +72,6 @@ const askQuestion = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
-    // 1. Logs the exact error object/stack trace to your terminal
-    console.error("❌ DEBUG ERROR in askQuestion:", error);
-
-    // 2. Returns a clean JSON response to your HTTP client
     const statusCode = error.statusCode || 500;
     return res.status(statusCode).json({
       success: false,
@@ -119,93 +81,152 @@ const askQuestion = asyncHandler(async (req, res) => {
   }
 });
 
-const generateEvaluation = asyncHandler(async (req, res) => {
-  const { answer_id, candidate_id, session_id, interview_id } = req.body;
-  if (!answer_id || !session_id) {
-    throw new APIerror(300, "please provide answer id and session id");
-  }
 
-  // If no evaluations exist, this is the first answer (introduction)
-  const { count, error: evalError } = await supabase
-    .from('evaluations')
-    .select('*', { count: 'exact', head: true })
-    .eq('session_id', session_id);
-  
-  if (evalError) {
-    throw new APIerror(500, "Error checking existing evaluations");
-  }
+const submitAnswer = asyncHandler(async (req, res) => {
+  try {
+    const { session_id, candidate_id, interview_id, question_id, answer , previous_answer_id} =
+      req.body;
+    if (
+      !session_id ||
+      !candidate_id ||
+      !interview_id ||
+      !question_id ||
+      !answer
+    ) {
+      throw new APIError(
+        400,
+        "session_id, candidate_id, interview_id, question_id and answer are required",
+      );
+    }
+    const storedAnswer = await storeAnswer(question_id, answer);
 
-  const isFirstAnswer = count === 0;
+    const { count, error: evaluationCountError } = await supabase
+      .from("evaluations")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("session_id", session_id);
 
-  if (isFirstAnswer) {
-    // This is the introduction answer - run Context Extractor
-    const jobRequirements = await job_requirements(interview_id);
-    const answerData = await getAnswerOnly(answer_id);
-    const answer = answerData?.answer || "";
-    const Candidate_Info = await extractContext({
-      candidateAnswer: answer,
-      jobRequirements: jobRequirements,
-    }); //returns intro, projects, skills
+    if (evaluationCountError) {
+      throw new APIError(500, "Failed to determine interview progression");
+    }
+    const introExists = await intro_exists(candidate_id);
 
-    const stored_info = await storeCandidateInfo(
-      candidate_id,
-      Candidate_Info.introduction,
-      Candidate_Info.projects,
-      Candidate_Info.skills,
-    );
-    return res.status(200).json({
-      success: true,
-      message: "intro stored successfully",
-    });
-  } else {
-    //evaluation agent
-    const current_question_details = await getAnswerDetails(answer_id); //question, question_intent, answer, topic, difficulty
-    const candidate_details = await fetchCandidateInfo(candidate_id);
-    const jobRequirements = await job_requirements(interview_id);
-    console.time("evaluation")
-    const evaluation = await evaluateAnswer({
-      candidateIntroduction: candidate_details.introduction,
-      candidateProjects: candidate_details.projects,
-      candidateSkills: candidate_details.skills,
-      jobRequirements: jobRequirements,
-      currentQuestion: current_question_details.question,
-      currentQuestionIntent: current_question_details.question_intent,
-      candidateAnswer: current_question_details.answer,
-      currentTopic: current_question_details.topic,
-      currentDifficulty: current_question_details.difficulty,
-    });
-    console.timeEnd('evaluation')
-    const stored_evaluation = await store_evaluation(
-      answer_id,
-      session_id,
-      evaluation.correctness,
-      evaluation.concepts_covered,
-      evaluation.concepts_missing,
-      evaluation.need_follow_up,
-      evaluation.move_to_next_topic,
-      evaluation.increase_difficulty,
-      evaluation.current_interview_stage,
-      evaluation.finish_interview,
-      evaluation.answer_quality,
-    );
+    const noEvaluation = count === 0; //if no evaluation then run context extractor agent
 
-    // Use Interview Engine to determine next step
-    const interviewResult = await processInterviewFlow({
-      session_id,
-      candidate_id,
-      interview_id,
-      answer_id,
-      finish_interview: evaluation.finish_interview,
-    });
+    if (noEvaluation && !introExists) {
+      console.time("context extractor");
+      const candidateInfo = await extractContext({
+        candidateAnswer: answer,
+      });
+      console.timeEnd("context extractor");
+      await storeCandidateInfo(
+        candidate_id,
+        candidateInfo.introduction,
+        candidateInfo.projects,
+        candidateInfo.skills,
+      );
+      const jobRequirements = await job_requirements(interview_id);
+      const updatedCandidate = await fetchCandidateInfo(candidate_id);
+      const previousQuestionAndAnswer = await getPreviousAnswers(question_id);
 
-    return res.status(200).json({
-      success: true,
-      message: "evaluation stored successfully",
-      data: {
-        stored_evaluation,
-      },
-    });
+      const nextQuestion = await generateQuestion({
+        candidateIntroduction: updatedCandidate?.introduction,
+        candidateProjects: updatedCandidate?.projects,
+        candidateSkills: updatedCandidate?.initial_claimed_skills,
+        jobRequirements,
+        currentInterviewStage: "technical",
+        currentTopic: null,
+        moveToNextTopic: true,
+        currentDifficulty: "easy",
+        increaseDifficulty: false,
+        previousQuestionAndAnswer,
+      });
+
+      const storedQuestion = await storeQuestion(
+        session_id,
+        nextQuestion.question,
+        nextQuestion.intent,
+        nextQuestion.topic,
+        nextQuestion.difficulty,
+      );
+
+      return res.status(200).json({
+        success: true,
+        interviewCompleted: false,
+        message:
+          "Introduction processed and next question generated successfully",
+        data: {
+          question: storedQuestion,
+        },
+      });
+    } else {
+      const currentQuestionDetails = await getAnswerDetails(question_id);
+
+      if (!currentQuestionDetails) {
+        throw new APIError(404, "Question/answer details could not be found");
+      }
+
+      const candidateDetails = await fetchCandidateInfo(candidate_id);
+      const jobRequirements = await job_requirements(interview_id);
+      let currentInterviewStage = "technical";
+      if (previous_answer_id) {
+        const previousEvaluation = await getEvaluation(previous_answer_id);
+        currentInterviewStage = previousEvaluation? previousEvaluation.current_interview_stage : "technical";
+      }
+
+      const evaluation = await evaluateAnswer({
+        candidateIntroduction: candidateDetails?.introduction,
+        candidateProjects: candidateDetails?.projects,
+        candidateSkills: candidateDetails?.initial_claimed_skills,
+        jobRequirements,
+        currentQuestion: currentQuestionDetails.question,
+        currentQuestionIntent: currentQuestionDetails.question_intent,
+        currentInterviewStage,
+        candidateAnswer: currentQuestionDetails.answer,
+        currentTopic: currentQuestionDetails.topic,
+        currentDifficulty: currentQuestionDetails.difficulty,
+      });
+
+      const storedEvaluation = await store_evaluation(
+        question_id,
+        session_id,
+        evaluation.correctness,
+        evaluation.concepts_covered,
+        evaluation.concepts_missing,
+        evaluation.skills_demonstrated,
+        evaluation.need_follow_up,
+        evaluation.move_to_next_topic,
+        evaluation.increase_difficulty,
+        evaluation.current_interview_stage,
+        evaluation.finish_interview,
+        evaluation.answer_quality,
+        evaluation.evaluation_reasoning
+      );
+
+      const interviewResult = await processInterviewFlow({
+        session_id,
+        candidate_id,
+        interview_id,
+        answer_id: question_id,
+        finish_interview: evaluation.finish_interview,
+      });
+
+      return res.status(200).json({
+        success: true,
+        interviewCompleted: interviewResult.interviewCompleted || false,
+        message: interviewResult.message,
+        data: {
+          evaluation: storedEvaluation,
+          ...interviewResult.data,
+        },
+      });
+    }
+
+  } catch (error) {
+    console.log(error)
   }
 });
 
-export { submitAnswer, askQuestion, generateEvaluation };
+export { askQuestion, submitAnswer };

@@ -10,8 +10,10 @@ const candidateRouter = Router();
 candidateRouter.post("/verify-invitation", verifyInvitation);
 
 const router = Router();
-router.post("/start", requireCandidateInterviewAccess, askQuestion);
-router.post("/answer", requireCandidateInterviewAccess, submitAnswer);
+// router.post("/start", requireCandidateInterviewAccess, askQuestion);
+router.post("/start", askQuestion);
+// router.post("/answer", requireCandidateInterviewAccess, submitAnswer);
+router.post("/answer", submitAnswer);
 
 export { candidateRouter };
 export default router;

@@ -101,7 +101,8 @@ const sendInvitationEmail = async ({
       ].join("\n\n"),
       htmlContent: `
         <h2>Interview invitation</h2>
-        <p>${safeCompanyName} has invited you to interview for <strong>${safeJobTitle}</strong>.</p>
+        <p>${safeCompanyName} has invited you to an interview for <strong>${safeJobTitle}</strong>.</p>
+        <p>This interview is guided by Cognivo and will adapt its questions based on your responses and the role requirements.</p>
         <p><a href="${safeInvitationUrl}">Start Interview</a></p>
         <p>This link expires on ${expiryText}.</p>
       `,

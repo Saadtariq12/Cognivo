@@ -10,6 +10,7 @@ import {
   storeAnswer,
   getAnswerDetails,
   getPreviousAnswers,
+  getQuestionsAskedInStage,
 } from "../models/questionAnswer.model.js";
 import {
   storeCandidateInfo,
@@ -21,6 +22,10 @@ import {
   store_evaluation,
 } from "../models/evaluations.model.js";
 import { supabase } from "../config/database.js";
+import {
+  getStageQuestionLimit,
+  resolveInterviewProgression,
+} from "../services/Interview/stageLimits.js";
 
 const askQuestion = asyncHandler(async (req, res) => {
   try {
@@ -176,6 +181,12 @@ const submitAnswer = asyncHandler(async (req, res) => {
         currentInterviewStage = previousEvaluation? previousEvaluation.current_interview_stage : "technical";
       }
 
+      const questionsAskedInCurrentStage = await getQuestionsAskedInStage(
+        session_id,
+        currentInterviewStage,
+      );
+      const stageQuestionLimit = getStageQuestionLimit(currentInterviewStage);
+
       const evaluation = await evaluateAnswer({
         candidateIntroduction: candidateDetails?.introduction,
         candidateProjects: candidateDetails?.projects,
@@ -184,10 +195,23 @@ const submitAnswer = asyncHandler(async (req, res) => {
         currentQuestion: currentQuestionDetails.question,
         currentQuestionIntent: currentQuestionDetails.question_intent,
         currentInterviewStage,
+        questionsAskedInCurrentStage,
+        stageQuestionLimit,
         candidateAnswer: currentQuestionDetails.answer,
         currentTopic: currentQuestionDetails.topic,
         currentDifficulty: currentQuestionDetails.difficulty,
       });
+
+      // If the evaluator keeps the same stage after its limit, force it forward.
+      const progression = resolveInterviewProgression({
+        currentStage: currentInterviewStage,
+        evaluatorStage: evaluation.current_interview_stage,
+        questionsAskedInCurrentStage,
+      });
+      const effectiveFinishInterview =
+        evaluation.finish_interview || progression.finishInterview;
+      const effectiveInterviewStage =
+        progression.nextStage || currentInterviewStage;
 
       const storedEvaluation = await store_evaluation(
         question_id,
@@ -199,8 +223,8 @@ const submitAnswer = asyncHandler(async (req, res) => {
         evaluation.need_follow_up,
         evaluation.move_to_next_topic,
         evaluation.increase_difficulty,
-        evaluation.current_interview_stage,
-        evaluation.finish_interview,
+        effectiveInterviewStage,
+        effectiveFinishInterview,
         evaluation.answer_quality,
         evaluation.evaluation_reasoning
       );
@@ -210,7 +234,7 @@ const submitAnswer = asyncHandler(async (req, res) => {
         candidate_id,
         interview_id,
         answer_id: question_id,
-        finish_interview: evaluation.finish_interview,
+        finish_interview: effectiveFinishInterview,
       });
 
       return res.status(200).json({

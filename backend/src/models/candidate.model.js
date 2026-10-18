@@ -58,7 +58,7 @@ const fetchCandidateInfo = async (candidate_id) => {
   const { data, error } = await supabase
     .from("candidates")
     .select("introduction, projects, initial_claimed_skills")
-    .eq("profile_id", candidate_id)
+    .eq("id", candidate_id)
     .maybeSingle(); // Returns: { introduction: "...", projects: [...], skills: [...] } instead of [{ introduction: "...", projects: [...], skills: [...] }]
   if (error) {
     throw error;
@@ -81,7 +81,7 @@ const storeCandidateInfo = async (
       projects: projects,
       initial_claimed_skills: skills,
     })
-    .eq("profile_id", candidate_id);
+    .eq("id", candidate_id);
 
   if (error) {
     throw error;

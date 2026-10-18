@@ -21,6 +21,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mongoose": "^9.9.4",
+    "ollama": "^0.6.4",
     "openai": "^7.15.0",
     "resend": "^6.28.1",
     "supabase": "^2.115.0"

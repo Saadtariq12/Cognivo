@@ -13,6 +13,8 @@ The following values are provided at runtime:
 - currentQuestionIntent
 - currentTopic
 - currentDifficulty
+- questionsAskedInCurrentStage
+- stageQuestionLimit
 - candidateAnswer
 
 ## Evaluation
@@ -39,6 +41,7 @@ introduction → technical → projects → problem_solving → closing
 Keep the current stage until sufficiently explored.
 "move_to_next_topic" changes the topic within a stage; it does NOT automatically change the interview stage.
 Do not end the interview because of one weak answer.
+Stages may end earlier when enough information has been gathered. The stage question limit is a maximum, not a target; do not keep a stage unnecessarily to reach it. If the current stage has reached its maximum, advance current_interview_stage to the next stage.
 
 ## Rules
 
@@ -52,7 +55,7 @@ Do not end the interview because of one weak answer.
 
 ## Output
 
-Return ONLY valid JSON with exactly this structure:
+Return ONLY valid JSON with exactly this structure(this is an example):
 
 {
   "correctness": 0,

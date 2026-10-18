@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { GoogleGenAI } from "@google/genai";
+import { generateWithOllama } from "../LLM/ollamaService.js";
 import contextExtractorAgentPrompt from "../AgentsPrompts/contextExtractorAgent.prompt.js";
 
 // Initialize Gemini AI client with API key
@@ -36,18 +37,9 @@ Here is the candidate's introduction answer:
 ${runtimeContext}
 `;
 
-    // Call Gemini API to extract structured information
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    // Parse and return the JSON response
-    const extractedContext = JSON.parse(response.text);
-
+    const response = generateWithOllama(prompt);
+    const extractedContext = JSON.parse(response.message.content);
+    
     return extractedContext;
   } catch (error) {
     console.error("Context Extractor Agent Error:", error);

@@ -83,6 +83,53 @@ const getAllQA = async(sessionId) => {
     }
     return data;
 }
+
+const getQuestionsAskedInStage = async (sessionId, stage) => {
+    const { data: questions, error: questionsError } = await supabase
+      .from('interview_answers')
+      .select('id')
+      .eq('session_id', sessionId)
+      .not('answer', 'is', null)
+
+    if (questionsError) {
+      throw questionsError;
+    }
+
+    const { data: evaluations, error: evaluationsError } = await supabase
+      .from('evaluations')
+      .select('answer_id, current_interview_stage')
+      .eq('session_id', sessionId);
+
+    if (evaluationsError) {
+      throw evaluationsError;
+    }
+
+    const stageByAnswerId = new Map(
+      evaluations.map((evaluation) => [
+        evaluation.answer_id,
+        evaluation.current_interview_stage,
+      ]),
+    );
+
+    let questionStage = 'introduction';
+    let questionsAsked = 0;
+
+    questions.forEach((question, index) => {
+      if (questionStage === stage) {
+        questionsAsked += 1;
+      }
+
+      const evaluatedNextStage = stageByAnswerId.get(question.id);
+      if (evaluatedNextStage) {
+        questionStage = evaluatedNextStage;
+      } else if (index === 0) {
+        // The existing introduction flow does not store an evaluation.
+        questionStage = 'technical';
+      }
+    });
+
+    return questionsAsked;
+};
 export {
   getPreviousAnswers,
   storeAnswer,
@@ -90,5 +137,6 @@ export {
   getAnswerDetails,
   getAnswerOnly,
   getAllQA,
+  getQuestionsAskedInStage,
 };
 

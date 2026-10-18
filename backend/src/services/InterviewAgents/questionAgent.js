@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { GoogleGenAI } from "@google/genai";
+import {generateWithOllama} from "../LLM/ollamaService.js"
 import questionAgentPrompt from "../AgentsPrompts/questionAgent.prompt.js";
 
 const ai = new GoogleGenAI({
@@ -45,6 +46,9 @@ const generateQuestion = async ({
     Current Difficulty:
     ${currentDifficulty || "easy"}
 
+    increase Difficulty: 
+    ${increaseDifficulty || "false"}
+
     Previous Questions and Answers:
     ${JSON.stringify(previousQuestionAndAnswer || [])}
     `;
@@ -57,15 +61,9 @@ const generateQuestion = async ({
     ${runtimeContext}
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+    const response = await generateWithOllama(prompt);
 
-    const generatedQuestion = JSON.parse(response.text);
+    const generatedQuestion = JSON.parse(response.message.content); 
 
     return generatedQuestion;
   } catch (error) {

@@ -1,10 +1,8 @@
 import dotenv from "dotenv"
-import OpenAI from "openai";
 dotenv.config();
 import evaluatorAgentPrompt from "../AgentsPrompts/evaluatorAgent.prompt.js";
 import { GoogleGenAI } from "@google/genai";
-import { OpenRouter } from "@openrouter/sdk";
-
+import {generateWithOllama} from "../LLM/ollamaService.js"
 const ai = new GoogleGenAI({
   apiKey: process.env.EVALUATOR_API_KEY,
 });
@@ -17,6 +15,8 @@ const evaluateAnswer = async ({
   currentTopic,
   currentDifficulty,
   candidateAnswer,
+  questionsAskedInCurrentStage,
+  stageQuestionLimit,
 }) => {
     try {
         const runtimeContext = `
@@ -39,6 +39,12 @@ const evaluateAnswer = async ({
         Current Difficulty:
         ${currentDifficulty || "medium"}
 
+        Questions Asked In Current Stage:
+        ${questionsAskedInCurrentStage}
+
+        Stage Question Limit:
+        ${stageQuestionLimit}
+
         Candidate Answer:
         ${candidateAnswer || "Not provided"}
 
@@ -51,14 +57,9 @@ const evaluateAnswer = async ({
         ${runtimeContext}
         `;
         
-            const response = await ai.models.generateContent({
-              model: "gemini-3.1-flash-lite",
-              contents: prompt,
-              config: {
-                responseMimeType: "application/json",
-              },
-            });
-            const generatedEvaluation = JSON.parse(response.text);
+            const response = generateWithOllama(prompt);
+
+            const generatedEvaluation = JSON.parse(response.message.content);
         
             return generatedEvaluation;
         
